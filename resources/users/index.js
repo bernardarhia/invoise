@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authenticatedMiddleware from "../../middleware/authenticatedMiddleware.js";
+import isAdminMiddleware from "../../middleware/isAdminMiddleware.js";
 import Token from "../../models/Token.js";
 import httpException from "../../utils/exceptions/httpException.js";
 import UserService from "./service.js";
@@ -8,25 +9,27 @@ import {
   updateAuthenticationSchema,
   userValidationMiddleware,
   authenticationSchema,
+  updatePasswordAuthenticationSchema
 } from "./validation.js";
 
 class UserResource {
   constructor() {
     this.subRoute = "users";
     this.routes = {
-      LOGIN: "/login",
-      REGISTER: "/register",
+      LOGIN: "/auth/login",
+      REGISTER: "/auth/register",
       LOGOUT: "/logout",
-      UPDATE: "/update",
-      CHANGE_PASSWORD: "/change-password",
+      UPDATE: "/auth/update",
+      CHANGE_PASSWORD: "/auth/password/change",
       ME: "/me",
+      CREATE:"/create"
     };
     this.router = new Router();
     this.initializeRoutes();
   }
 
   initializeRoutes = () => {
-    const { LOGIN, REGISTER, LOGOUT, ME, UPDATE, CHANGE_PASSWORD } =
+    const { LOGIN, REGISTER, LOGOUT, ME, UPDATE, CHANGE_PASSWORD, CREATE } =
       this.routes;
 
     this.router.post(
@@ -39,8 +42,9 @@ class UserResource {
       userValidationMiddleware(loginAuthenticationSchema),
       this.login
     );
-    this.router.post(LOGOUT, this.logout);
+    this.router.post(LOGOUT,authenticatedMiddleware, this.logout);
     this.router.get(ME, authenticatedMiddleware, this.me);
+    this.router.put(CHANGE_PASSWORD, authenticatedMiddleware, userValidationMiddleware(updatePasswordAuthenticationSchema), this.changePassword);
     this.router.put(
       UPDATE,
       authenticatedMiddleware,
@@ -87,14 +91,14 @@ class UserResource {
   logout = async (req, res, next) => {
     try {
       const cookies = req.cookies;
-      if (!cookies?.auth_token) return res.status(200);
+      if (!cookies?.auth_token) return res.status(400).send();
       const refreshToken = cookies.auth_token;
       // check if refresh token is found in the database
       const foundUser = await Token.findOne({
         where: { authToken: refreshToken },
       });
       if (!foundUser) {
-        return res.clearCookie("auth_token").status(200).send();
+        return res.status(400).send();
       }
 
       // delete refresh token from user's model
@@ -128,5 +132,15 @@ class UserResource {
       next(new httpException(400, error.message));
     }
   };
+  
+  changePassword = async (req, res, next) => {
+    try {
+      const {id} = req.user;
+      const result = await this.services.changePassword(req.body, id);
+      return res.send(result)
+    } catch (error) {
+      next(new httpException(400, error.message));
+    }
+  }
 }
 export default UserResource;
