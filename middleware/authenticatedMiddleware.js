@@ -11,21 +11,21 @@ const authenticatedMiddleware = async (req, res, next) => {
 
   try {
     const payload = await verifyToken(accessToken);
-    if (!payload) return next(new httpException(401, "Unauthorized 2"));
+    if (!payload) return next(new httpException(401, "Unauthorized"));
 
     const token = await Token.findOne({
       where: { UserId: payload.id },
     });
     const user = await Users.findByPk(payload.id);
 
-    if (!token || !user) return next(new httpException(401, "Unauthorized 3"));
+    if (!token || !user) return next(new httpException(401, "Unauthorized"));
 
     const { firstName, lastName, email, id } = user;
     req.user = { firstName, lastName, email, id };
 
     next();
   } catch (error) {
-    return next(new httpException(401, error.message));
+    return next(new httpException(401, "Unauthorized"));
   }
 };
 

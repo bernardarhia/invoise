@@ -1,4 +1,5 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import authenticatedMiddleware from "../../middleware/authenticatedMiddleware.js";
 import Token from "../../models/Token.js";
 import httpException from "../../utils/exceptions/httpException.js";
@@ -39,7 +40,7 @@ class UserResource {
       userValidationMiddleware(loginAuthenticationSchema),
       this.login
     );
-    this.router.post(LOGOUT, this.logout);
+    this.router.post(LOGOUT, authenticatedMiddleware, this.logout);
     this.router.get(ME, authenticatedMiddleware, this.me);
     this.router.put(
       UPDATE,
@@ -87,9 +88,11 @@ class UserResource {
   logout = async (req, res, next) => {
     try {
       const cookies = req.cookies;
-      if (!cookies?.auth_token) return res.status(200);
+      if (!cookies?.auth_token) throw new Error("Unauthorized");
       const refreshToken = cookies.auth_token;
+
       // check if refresh token is found in the database
+      await jwt.sign(refreshToken, "", { expiresIn: 1 });
       const foundUser = await Token.findOne({
         where: { authToken: refreshToken },
       });
@@ -114,7 +117,7 @@ class UserResource {
     try {
       return res.json(req.user);
     } catch (error) {
-      next(new httpException(400, "an error occurred"));
+      next(new httpException(400, error.message));
     }
   };
 

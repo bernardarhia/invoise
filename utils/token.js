@@ -32,7 +32,6 @@ const assignToken = async (user) => {
   // check if user has token
   const tokenExists = await Token.findOne({ where: { UserId: id } });
 
-  console.log("tokenExists", tokenExists);
   if (!tokenExists) await Token.create({ authToken: refreshToken, UserId: id });
   else
     await Token.update(
