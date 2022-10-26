@@ -4,7 +4,7 @@ import Token from "../models/Token.js";
 const createToken = (user) => {
   const { id, email } = user;
   return jwt.sign({ id, email }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
+    expiresIn: "5m",
   });
 };
 const createRefreshToken = (user) => {
@@ -17,6 +17,15 @@ const createRefreshToken = (user) => {
 const verifyToken = (token) => {
   return new Promise((resolve, reject) => {
     jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
+      if (err) return reject(err);
+
+      resolve(payload);
+    });
+  });
+};
+const verifyRefreshToken = (token) => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
       if (err) return reject(err);
 
       resolve(payload);
@@ -51,4 +60,4 @@ const assignToken = async (user) => {
     refreshToken,
   };
 };
-export { createToken, verifyToken, createRefreshToken, assignToken };
+export { createToken, verifyToken, verifyRefreshToken,createRefreshToken, assignToken };

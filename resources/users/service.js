@@ -1,12 +1,12 @@
 import Users from "../../models/User.js";
-import { verifyPassword } from "../../utils/password.js";
+import { hashPassword, verifyPassword } from "../../utils/password.js";
 import { assignToken } from "../../utils/token.js";
 
 export default class UserService {
   register = async (body) => {
     try {
-      const { firstName, lastName, email, password } = body;
-      const user = await Users.create({ firstName, lastName, email, password });
+      const { firstName, lastName, email, password, } = body;
+      const user = await Users.create({ firstName, lastName, email, password, role:"admin" });
 
       const result = await assignToken(user);
       return result;
@@ -44,6 +44,35 @@ export default class UserService {
       );
       if (!updatedUser) throw new Error("Unable to update user details");
       return await Users.findByPk(id);
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  };
+
+  changePassword = async (body, id) => {
+    const { oldPassword, newPassword } = body;
+
+    try {
+      const user = await Users.findByPk(id);
+      const isPasswordValid = await verifyPassword(oldPassword, user.password);
+
+      if (!isPasswordValid) throw new Error("Invalid password entered");
+      const newPasswordIsSameAsOld = await verifyPassword(
+        newPassword,
+        user.password
+      );
+
+      if (newPasswordIsSameAsOld)
+        throw new Error("New password is the same as old password");
+
+      const password = await hashPassword(newPassword);
+
+      const updatedPassword = await Users.update(
+        { password },
+        { where: { id } }
+      );
+
+      if (updatedPassword) return true;
     } catch (error) {
       throw new Error(error.message);
     }
