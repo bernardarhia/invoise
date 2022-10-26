@@ -51,12 +51,70 @@ export default class UserService {
     }
   };
 
-  delete = async(clientId, id)=>{
+  delete = async (clientId, id) => {
     try {
-      const user = await Users.findByPk(clientId);
-      return user;
+      const user = await Users.findOne({
+        where: { id: clientId },
+        include: Clients,
+      });
+
+      if (!user) throw new Error("User not found");
+
+      if (user.role != "client") throw new Error("Invalid user found");
+      if (user.clients[0].createdBy != id) throw new Error("unknown user");
+
+      const result = await Users.destroy({ where: { id: clientId } });
+      return result;
     } catch (error) {
-      throw new Error(error.message)
+      throw new Error(error.message);
     }
-  }
+  };
+  fetchClient = async (clientId, id) => {
+    try {
+      const client = await Clients.findOne({
+        where: { UserId: clientId, createdBy: id },
+        include: Users,
+      });
+      if (!client) throw new Error("Client not found");
+      return { client };
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  };
+  fetchAllClients = async (id) => {
+    try {
+      const clients = await Clients.findAll({
+        where: { createdBy: id },
+        include: {
+          model: Users,
+          attributes: ["firstName", "lastName", "email"],
+        },
+      });
+      if (!clients) throw new Error("Clients not found");
+      return clients;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  };
+
+  /**  //TODO - Update client profile and other details with ease
+    update format
+    extract details that goes into users table and update 
+    extract details that goes into clients table and update
+    return the newly updated details
+  */
+  update = async (body, clientId, id) => {
+    try {
+      const clients = await Clients.update(
+        {},
+        {
+          where: { createdBy: id, UserId: clientId },
+        }
+      );
+      if (!clients) throw new Error("Clients not found");
+      return clients;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  };
 }

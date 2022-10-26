@@ -11,13 +11,16 @@ class ClientResource {
     this.routes = {
       CREATE: "/create",
       DELETE: "/delete/:clientId",
+      FETCH: "/:clientId",
+      FETCH_ALL: "",
+      UPDATE: "/update/:clientId",
     };
     this.router = new Router();
     this.initializeRoutes();
   }
 
   initializeRoutes = () => {
-    const { CREATE, DELETE } = this.routes;
+    const { CREATE, DELETE, FETCH, FETCH_ALL, UPDATE } = this.routes;
     this.router.post(
       CREATE,
       authenticatedMiddleware,
@@ -30,6 +33,24 @@ class ClientResource {
       authenticatedMiddleware,
       isAdminMiddleware,
       this.delete
+    );
+    this.router.get(
+      FETCH,
+      authenticatedMiddleware,
+      isAdminMiddleware,
+      this.fetchClient
+    );
+    this.router.get(
+      FETCH_ALL,
+      authenticatedMiddleware,
+      isAdminMiddleware,
+      this.fetchAllClients
+    );
+    this.router.put(
+      UPDATE,
+      authenticatedMiddleware,
+      isAdminMiddleware,
+      this.update
     );
     this.services = new UserService();
   };
@@ -48,8 +69,39 @@ class ClientResource {
     try {
       const { clientId } = req.params;
       const { id } = req.user;
-      const result = this.services.delete(clientId, id);
-      return res.json({result});
+      const result = await this.services.delete(clientId, id);
+
+      return res.send({ success: Boolean(result) });
+    } catch (error) {
+      next(new httpException(400, error.message));
+    }
+  };
+  fetchClient = async (req, res, next) => {
+    try {
+      const { clientId } = req.params;
+      const { id } = req.user;
+      const client = await this.services.fetchClient(clientId, id);
+      return res.status(200).json(client);
+    } catch (error) {
+      next(new httpException(400, error.message));
+    }
+  };
+  fetchAllClients = async (req, res, next) => {
+    try {
+      const { id } = req.user;
+      const client = await this.services.fetchAllClients(id);
+      return res.status(200).json(client);
+    } catch (error) {
+      next(new httpException(400, error.message));
+    }
+  };
+  update = async (req, res, next) => {
+    try {
+      const { id } = req.user;
+      const { clientId } = req.params;
+
+      const client = await this.services.update(req.body, clientId, id);
+      return res.status(200).json(client);
     } catch (error) {
       next(new httpException(400, error.message));
     }

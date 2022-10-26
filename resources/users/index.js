@@ -2,7 +2,9 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import authenticatedMiddleware from "../../middleware/authenticatedMiddleware.js";
 import Token from "../../models/Token.js";
+import Users from "../../models/User.js";
 import httpException from "../../utils/exceptions/httpException.js";
+import extractObjectData from "../../utils/extractObjectData.js";
 import UserService from "./service.js";
 import {
   loginAuthenticationSchema,
@@ -123,7 +125,9 @@ class UserResource {
   // FETCH USER DATA
   me = async (req, res, next) => {
     try {
-      return res.json(req.user);
+      const { id } = req.user;
+      const foundUser = await Users.findByPk(id);
+      return res.send(extractObjectData(foundUser, "password"));
     } catch (error) {
       next(new httpException(400, error.message));
     }

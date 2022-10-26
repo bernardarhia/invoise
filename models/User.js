@@ -39,7 +39,7 @@ Users.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
-    }
+    },
   },
   {
     sequelize: db, // We need to pass the connection instance
@@ -55,12 +55,14 @@ Token.belongsTo(Users, {
     allowNull: false,
   },
 });
-Users.hasMany(Clients)
-Clients.belongsTo(Users,{
+Users.hasMany(Clients, {
+  onDelete: "cascade",
+});
+Clients.belongsTo(Users, {
   foreignKey: {
     allowNull: false,
   },
-})
+});
 
 Users.beforeCreate(async (user, options) => {
   const { email, password, createdAt, updatedAt, role } = user.dataValues;
@@ -76,4 +78,9 @@ Users.beforeCreate(async (user, options) => {
   if (foundUser) throw new Error("User already exists");
 });
 
+Users.afterFind(async (user, options) => {
+  if (!user) return;
+  user.dataValues.fullName =
+    user.dataValues.firstName + " " + user.dataValues.lastName;
+});
 export default Users;
