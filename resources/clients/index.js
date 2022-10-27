@@ -10,10 +10,11 @@ class ClientResource {
     this.subRoute = "clients";
     this.routes = {
       CREATE: "/create",
-      DELETE: "/delete/:clientId",
+      DELETE: "/:clientId/delete",
       FETCH: "/:clientId",
       FETCH_ALL: "",
-      UPDATE: "/update/:clientId",
+      UPDATE: "/:clientId/update",
+      STATUS_UPDATE: "/:clientId/status",
     };
     this.router = new Router();
     this.initializeRoutes();
@@ -50,7 +51,14 @@ class ClientResource {
       UPDATE,
       authenticatedMiddleware,
       isAdminMiddleware,
+      clientValidationMiddleware(clientSchema),
       this.update
+    );
+    this.router.put(
+      STATUS_UPDATE,
+      authenticatedMiddleware,
+      isAdminMiddleware,
+      this.toggleActivation
     );
     this.services = new UserService();
   };
@@ -102,6 +110,20 @@ class ClientResource {
 
       const client = await this.services.update(req.body, clientId, id);
       return res.status(200).json(client);
+    } catch (error) {
+      next(new httpException(400, error.message));
+    }
+  };
+
+  toggleActivation = async (req, res, next) => {
+    try {
+      const { clientId } = req.params;
+      const { activationStatus } = req.body;
+      const result = await this.services.toggleActivation(
+        activationStatus,
+        clientId
+      );
+      return res.status(200).send(result);
     } catch (error) {
       next(new httpException(400, error.message));
     }

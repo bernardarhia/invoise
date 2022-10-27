@@ -105,16 +105,37 @@ export default class UserService {
   */
   update = async (body, clientId, id) => {
     try {
-      const clients = await Clients.update(
-        {},
+      const {
+        firstName,
+        lastName,
+        phone,
+        country,
+        city,
+        address,
+        website,
+      } = body;
+      const updatedClient = await Clients.update(
+        {phone, country, city, address, website},
         {
           where: { createdBy: id, UserId: clientId },
         }
       );
-      if (!clients) throw new Error("Clients not found");
-      return clients;
+
+      const updatedUser = await Users.update({firstName, lastName}, {where:{
+        id:clientId
+      }})
+
+      if(updatedClient && updatedUser) return body;
+      throw new Error("Unable to update user")
     } catch (error) {
       throw new Error(error.message);
     }
   };
-}
+  toggleActivation = async(activationStatus, id)=>{
+    try {
+      const user = await Users.update({active : activationStatus}, {id})
+      return user;
+    } catch (error) {
+      throw new Error(error.message)
+    }
+  }}

@@ -27,6 +27,7 @@ export default class UserService {
       const isPasswordValid = await verifyPassword(password, user.password);
       if (!isPasswordValid) throw new Error("Wrong email/password combination");
 
+      if(user.role == "client" && user.active == false)throw new Error("Your account is inactive. Contact admin to activate it for you")
       const result = await assignToken(user);
       return result;
     } catch (error) {
